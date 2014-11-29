@@ -1,56 +1,47 @@
 import Data.List
-import Control.Monad
-import Numeric
-import Data.Char
 
 letters = "acdegilmnoprstuw"
 
-findIdx :: Char -> Int
-findIdx y = case elemIndex y letters of
-              Nothing -> -1
-              Just z -> z
+--define our hadh function
+hash = foldl (\x y -> x*37 + (findIndex' y)) 7
+findIndex' y =
+  case elemIndex y letters of
+    Nothing -> -1 -- To match JS
+    Just z -> z
 
-hash :: String -> Int
-hash = foldl (\x y -> x*37 + (findIdx y)) 7
-
---it is a nine letter word
---"aaaaaaaaa" to "wwwwwwwww"
-
---we can dermine the word at the given index in because
---we can convert to base36 and then map the value in letters
-padZeros :: Int -> String -> String
-padZeros n s
-  | length s < n  = (replicate (n - length s) '0') ++ s
-  | otherwise     = s
-
-convertFromDecimal :: Int -> Int -> String -> String
-convertFromDecimal num toBase accum
-  | num < 0     = error "number cannot be negative"
+-- Our word list generator function
+--  ex:
+--    getWordAtIndex 1 <==> "a"
+--    getWordAtIndex 16 <==> "ca"
+getWordAtIndex i = convertFromDecimal i ""
+convertFromDecimal num accum
   | num == 0 = accum :: String
   | num > 0  =
-    let chars  = "acdegilmnoprstuw"
-        over   = num `mod` toBase
-        remain = num `div` toBase
-        accum' = (chars !! over) : accum
+    let
+        over   = num `mod` 16
+        remain = num `div` 16
+        accum' = (letters !! over) : accum
     in
-    convertFromDecimal remain toBase accum'
+    convertFromDecimal remain accum'
 
-getWordAtOffset i = padZeros 9 $ convertFromDecimal i 16 ""
-hashAt = hash . getWordAtOffset
+hashAtIndex = hash . getWordAtIndex
 
-expSearch :: Int -> Int -> Int -> Int
-expSearch value lower upper | hashAt upper < value = expSearch value upper (upper*2)
-                            | otherwise            = binarySearch value lower upper
+-- http://en.wikipedia.org/wiki/Exponential_search
+exponentialSearch :: Int -> Int -> Int -> Maybe Int
+exponentialSearch value lower upper
+  | hashAtIndex upper < value = exponentialSearch value upper (upper*2)
+  | otherwise                 = binarySearch value lower upper
 
 binarySearch value lower upper
-  | upper   < lower     = -1
-  | hashAt(mid) < value  = binarySearch value (mid+1) upper
-  | hashAt(mid) > value  = binarySearch value lower (mid-1)
-  | otherwise           = mid
+  | upper   < lower           = Nothing
+  | hashAtIndex(mid) < value  = binarySearch value (mid+1) upper
+  | hashAtIndex(mid) > value  = binarySearch value lower (mid-1)
+  | otherwise                 = Just mid
   where
   mid = lower + ((upper - lower) `div` 2)
 
 main = do
-  case expSearch 956446786872726 0 1 of
-    -1 -> error "Unable to find"
-    z -> putStrLn $ show $ getWordAtOffset z
+  let toFind = 956446786872726
+  case exponentialSearch toFind 0 1 of
+    Nothing -> error $ "No word exists with hash " ++ show(toFind)
+    Just z  -> putStrLn $ show $ getWordAtIndex z
