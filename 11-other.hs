@@ -40,6 +40,11 @@ hashAt = hash . getWordAtOffset
 
 expValues = map (^2) [1..]
 
+expSearch :: Int -> Int -> Int -> (Int, Int)
+expSearch value lower upper | hashAt upper < value = expSearch value upper (upper*2)
+                            | otherwise            = (lower, upper)
+
+
 main = do
   case findIndex (\x -> hashAt(x) > 956446786872726) expValues of
     Nothing -> error "Unable to find"
