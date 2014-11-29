@@ -38,14 +38,19 @@ convertFromDecimal num toBase accum
 getWordAtOffset i = padZeros 9 $ convertFromDecimal i 16 ""
 hashAt = hash . getWordAtOffset
 
-expValues = map (^2) [1..]
-
-expSearch :: Int -> Int -> Int -> (Int, Int)
+expSearch :: Int -> Int -> Int -> Int
 expSearch value lower upper | hashAt upper < value = expSearch value upper (upper*2)
-                            | otherwise            = (lower, upper)
+                            | otherwise            = binarySearch value lower upper
 
+binarySearch value lower upper
+  | upper   < lower     = -1
+  | hashAt(mid) < value  = binarySearch value (mid+1) upper
+  | hashAt(mid) > value  = binarySearch value lower (mid-1)
+  | otherwise           = mid
+  where
+  mid = lower + ((upper - lower) `div` 2)
 
 main = do
-  case findIndex (\x -> hashAt(x) > 956446786872726) expValues of
-    Nothing -> error "Unable to find"
-    Just z -> putStrLn $ show $ expValues !! z
+  case expSearch 956446786872726 0 1 of
+    -1 -> error "Unable to find"
+    z -> putStrLn $ show $ getWordAtOffset z
